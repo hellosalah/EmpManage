@@ -32,8 +32,15 @@ public class Employee {
     private int contactInformation;
 
     private String address;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
 }
 
 enum EmploymentStatus {
     FULL_TIME, INTERN, FREELANCER
+}
+
+enum Role {
+    HR_PERSONNEL, MANAGER, ADMINISTRATOR
 }
