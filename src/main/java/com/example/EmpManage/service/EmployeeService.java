@@ -2,15 +2,15 @@ package com.example.EmpManage.service;
 
 import com.example.EmpManage.model.Employee;
 import com.example.EmpManage.repository.EmployeeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class EmployeeService {
-    private final EmployeeRepository employeeRepository;
-
-    public EmployeeService(EmployeeRepository employeeRepository) {
-        this.employeeRepository = employeeRepository;
-    }
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     public Employee createEmployee(Employee employee) {
         return employeeRepository.save(employee);
