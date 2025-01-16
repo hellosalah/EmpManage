@@ -117,9 +117,5 @@ public class Employee {
     }
 }
 
-enum EmploymentStatus {
-    FULL_TIME, INTERN, FREELANCER
-}
-
 
 
