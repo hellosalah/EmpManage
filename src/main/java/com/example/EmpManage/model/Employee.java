@@ -41,6 +41,3 @@ enum EmploymentStatus {
     FULL_TIME, INTERN, FREELANCER
 }
 
-enum Role {
-    HR_PERSONNEL, MANAGER, ADMINISTRATOR
-}
