@@ -1,5 +1,5 @@
 package com.example.EmpManage.model;
 
 public enum Role {
-    HR_PERSONNEL, MANAGER, ADMINISTRATOR
+    HR_PERSONNEL, MANAGER, ADMINISTRATOR, EMPLOYEE
 }
