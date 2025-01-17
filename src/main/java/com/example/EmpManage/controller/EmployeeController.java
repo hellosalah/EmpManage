@@ -4,6 +4,7 @@ import com.example.EmpManage.config.UserSession;
 import com.example.EmpManage.model.Employee;
 import com.example.EmpManage.model.Role;
 import com.example.EmpManage.model.User;
+import com.example.EmpManage.service.AuditLogService;
 import com.example.EmpManage.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -17,12 +18,21 @@ public class EmployeeController {
 
     @Autowired
     private EmployeeService employeeService;
+    @Autowired
+    private AuditLogService auditLogService;
     @PostMapping
     public Employee createEmployee(@RequestBody Employee employee) {
         if (!hasPermission(Role.HR_PERSONNEL, Role.ADMINISTRATOR)) {
             throw new RuntimeException("Permission denied: Cannot create employee.");
         }
-        return employeeService.createEmployee(employee);
+
+        Employee created = employeeService.createEmployee(employee);
+        auditLogService.logAction(
+                created.getEmployeeId(),
+                UserSession.getInstance().getCurrentUser().getId(),
+                "CREATED"
+        );
+        return created;
     }
 
     @GetMapping
@@ -50,7 +60,13 @@ public class EmployeeController {
         if (userRole == Role.MANAGER && !existingEmployee.getDepartment().equals(userDepartment)) {
             throw new RuntimeException("Permission denied: Cannot update employees outside your department.");
         } else if (userRole == Role.HR_PERSONNEL || userRole == Role.ADMINISTRATOR || (userRole == Role.MANAGER && existingEmployee.getDepartment().equals(userDepartment))) {
-            return employeeService.updateEmployee(id, updatedEmployee);
+            Employee updated = employeeService.updateEmployee(id, updatedEmployee);
+            auditLogService.logAction(
+                    id,
+                    UserSession.getInstance().getCurrentUser().getId(),
+                    "UPDATED"
+            );
+            return updated;
         } else {
             throw new RuntimeException("Permission denied: Cannot update employees.");
         }
@@ -62,6 +78,12 @@ public class EmployeeController {
             throw new RuntimeException("Permission denied: Cannot delete employee.");
         }
         employeeService.deleteEmployee(id);
+
+        auditLogService.logAction(
+                id,
+                UserSession.getInstance().getCurrentUser().getId(),
+                "DELETED"
+        );
     }
 
     private boolean hasPermission(Role... roles) {
