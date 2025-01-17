@@ -31,7 +31,6 @@ public class EmployeeService {
                     employee.setEmploymentStatus(updatedEmployee.getEmploymentStatus());
                     employee.setContactInformation(updatedEmployee.getContactInformation());
                     employee.setAddress(updatedEmployee.getAddress());
-                    employee.setRole(updatedEmployee.getRole());
                     return employeeRepository.save(employee);
                 })
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
