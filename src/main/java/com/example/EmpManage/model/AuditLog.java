@@ -13,12 +13,11 @@ public class AuditLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long employeeId;      // ID of the employee being modified
-    private Long performedBy;     // ID of the user who made the change
-    private String action;        // CREATE, UPDATE, DELETE
+    private Long employeeId;
+    private Long performedBy;
+    private String action;
     private LocalDateTime timestamp;
 
-    // Getter and Setter for 'id'
     public Long getId() {
         return id;
     }
@@ -27,7 +26,6 @@ public class AuditLog {
         this.id = id;
     }
 
-    // Getter and Setter for 'employeeId'
     public Long getEmployeeId() {
         return employeeId;
     }
@@ -36,7 +34,6 @@ public class AuditLog {
         this.employeeId = employeeId;
     }
 
-    // Getter and Setter for 'performedBy'
     public Long getPerformedBy() {
         return performedBy;
     }
@@ -45,16 +42,13 @@ public class AuditLog {
         this.performedBy = performedBy;
     }
 
-    // Getter and Setter for 'action'
     public String getAction() {
         return action;
     }
-
     public void setAction(String action) {
         this.action = action;
     }
-
-    // Getter and Setter for 'timestamp'
+    
     public LocalDateTime getTimestamp() {
         return timestamp;
     }
