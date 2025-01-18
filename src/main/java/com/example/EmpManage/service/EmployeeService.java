@@ -1,10 +1,12 @@
 package com.example.EmpManage.service;
 
 import com.example.EmpManage.model.Employee;
+import com.example.EmpManage.model.EmploymentStatus;
 import com.example.EmpManage.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -47,5 +49,9 @@ public class EmployeeService {
 
     public List<Employee> searchEmployees(String query) {
         return employeeRepository.findByKeyword(query);
+    }
+
+    public List<Employee> filterEmployees(EmploymentStatus employmentStatus, String department, LocalDate hireDate) {
+        return employeeRepository.findEmployeesByFilters(employmentStatus, department, hireDate);
     }
 }

@@ -2,13 +2,16 @@ package com.example.EmpManage.controller;
 
 import com.example.EmpManage.config.UserSession;
 import com.example.EmpManage.model.Employee;
+import com.example.EmpManage.model.EmploymentStatus;
 import com.example.EmpManage.model.Role;
 import com.example.EmpManage.model.User;
 import com.example.EmpManage.service.AuditLogService;
 import com.example.EmpManage.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -109,5 +112,28 @@ public class EmployeeController {
     @GetMapping("/search")
     public List<Employee> searchEmployees(@RequestParam String query) {
         return employeeService.searchEmployees(query.toLowerCase());
+    }
+
+    @GetMapping("/filter")
+    public List<Employee> filterEmployees(
+            @RequestParam(required = false) String employmentStatus,
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hireDate) {
+
+        System.out.println("Received hireDate: " + hireDate);
+
+        EmploymentStatus statusEnum = null;
+        if (employmentStatus != null && !employmentStatus.isEmpty()) {
+            try {
+                statusEnum = EmploymentStatus.valueOf(employmentStatus.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Handle the case where the provided status is invalid
+                // Optionally, log an error or return a bad request response
+                System.out.println("Invalid employment status: " + employmentStatus);
+            }
+        }
+
+        List<Employee> results = employeeService.filterEmployees(statusEnum, department, hireDate);
+        return results;
     }
 }
