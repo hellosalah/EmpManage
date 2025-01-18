@@ -44,4 +44,8 @@ public class EmployeeService {
         return employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
     }
+
+    public List<Employee> searchEmployees(String query) {
+        return employeeRepository.findByKeyword(query);
+    }
 }

@@ -105,4 +105,9 @@ public class EmployeeController {
         User currentUser = UserSession.getInstance().getCurrentUser();
         return currentUser.getEmployee().getDepartment();
     }
+
+    @GetMapping("/search")
+    public List<Employee> searchEmployees(@RequestParam String query) {
+        return employeeService.searchEmployees(query.toLowerCase());
+    }
 }
