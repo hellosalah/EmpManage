@@ -21,7 +21,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     @Query("SELECT e FROM Employee e WHERE " +
             "(:employmentStatus IS NULL OR e.employmentStatus = :employmentStatus) AND " +
             "(:department IS NULL OR :department = '' OR e.department = :department) AND " +
-            "(:hireDate IS NULL OR DATE(e.hireDate) = DATE(:hireDate))")
+            "(:hireDate IS NULL OR e.hireDate = :hireDate)")
     List<Employee> findEmployeesByFilters(
             @Param("employmentStatus") EmploymentStatus employmentStatus,
             @Param("department") String department,
