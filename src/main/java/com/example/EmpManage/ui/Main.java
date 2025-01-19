@@ -10,6 +10,8 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +30,12 @@ public class Main extends JFrame {
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        employeeTable = new JTable();
+        initializeTable();
+        // Fetch all employees when the application starts
+        fetchFilteredEmployees(null, null, null);
+
+
 
         // Title Panel (Center aligned)
         JPanel titlePanel = new JPanel(new MigLayout("align center, insets 20"));
@@ -63,19 +71,33 @@ public class Main extends JFrame {
         dateField.setBackground(UIManager.getColor("Panel.background")); // Match window default color
         dateField.setText("Date");
 
-        // Adjust size to match combo box dimensions (smaller width, taller height)
-        Dimension size = new Dimension(50, 25); // Customize width and height as needed
-        dateField.setPreferredSize(size);
+        dateField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (dateField.getText().equals("Date")) {
+                    dateField.setText("");
+                    dateField.setForeground(Color.BLACK);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (dateField.getText().trim().isEmpty()) {
+                    dateField.setText("Date");
+                    dateField.setForeground(Color.GRAY);
+                }
+            }
+        });
 
         JButton filterButton = new JButton("Filter");
-
+        dateField.setPreferredSize(new Dimension(75, 25));
         // Add components to search panel
         searchPanel.add(addEmployeeButton, "cell 0 0");
         searchPanel.add(searchField, "cell 0 1, growx");
         searchPanel.add(searchButton, "cell 1 1");
         searchPanel.add(departmentFilter, "cell 2 1");
         searchPanel.add(statusFilter, "cell 3 1");
-        searchPanel.add(dateField, "cell 4 1");
+        searchPanel.add(dateField, "cell 4 1, w 75!, h 25!");
         searchPanel.add(filterButton, "cell 5 1");
 
 
@@ -99,6 +121,7 @@ public class Main extends JFrame {
         add(tabbedPane, BorderLayout.CENTER);
 
         addEmployeeButton.addActionListener(e -> showAddEmployeeDialog());
+
         searchButton.addActionListener(e -> {
             String query = searchField.getText().trim(); // Get search query
             System.out.println("Search query: " + query);
@@ -109,6 +132,40 @@ public class Main extends JFrame {
                 updateTable(employees); // Update the JTable with new data
             }
         });
+
+        filterButton.addActionListener(e -> {
+            String department = (String) departmentFilter.getSelectedItem();
+            String employmentStatus = (String) statusFilter.getSelectedItem();
+            String hireDateText = dateField.getText().trim();
+
+            System.out.println("Department: " + department);
+            System.out.println("Employment Status: " + employmentStatus);
+            System.out.println("Hire Date: " + hireDateText);
+
+            EmploymentStatus statusEnum = null;
+            if (!employmentStatus.equals("All Status")) {
+                statusEnum = EmploymentStatus.valueOf(employmentStatus);
+            }
+
+            LocalDate hireDate = null;
+            if (!hireDateText.isEmpty() && !hireDateText.equals("Date")) {
+                try {
+                    hireDate = LocalDate.parse(hireDateText);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Invalid date format. Please use YYYY-MM-DD");
+                    return;
+                }
+            }
+
+            fetchFilteredEmployees(statusEnum, department, hireDate);
+        });
+
+    }
+    private void initializeTable() {
+        String[] columnNames = { "Name", "Department", "Hire Date" }; // Define your column names here
+        List<Employee> emptyEmployeeList = new ArrayList<>(); // Empty list for initialization
+        EmployeeTableModel tableModel = new EmployeeTableModel(columnNames, emptyEmployeeList);
+        employeeTable.setModel(tableModel);
     }
 
     private void fetchEmployees() {
@@ -121,7 +178,8 @@ public class Main extends JFrame {
 
             String[] columnNames = {"Employee ID", "First Name", "Last Name", "Job Title", "Hire Date", "Status", "Contact", "Address", "Delete", "Update"};
             // Create the table with the new model
-            employeeTable = new JTable(new EmployeeTableModel(columnNames));
+            EmployeeTableModel tableModel = new EmployeeTableModel(columnNames, employees);
+            employeeTable = new JTable(tableModel);
             employeeTable.setFillsViewportHeight(true);
 
             // Set a custom cell renderer for the delete button
@@ -151,6 +209,59 @@ public class Main extends JFrame {
             JOptionPane.showMessageDialog(this, "Failed to fetch employees. Check your backend.");
         }
     }
+
+    private void fetchFilteredEmployees(EmploymentStatus status, String department, LocalDate hireDate) {
+        RestTemplate restTemplate = new RestTemplate();
+        StringBuilder urlBuilder = new StringBuilder("http://localhost:8080/employees/filter?");
+
+        // Only add parameters if they have actual values
+        if (status != null) {
+            urlBuilder.append("employmentStatus=").append(status.name());
+        }
+
+        if (department != null && !department.equals("All Departments")) {
+            if (urlBuilder.toString().endsWith("?")) {
+                urlBuilder.append("department=").append(department);
+            } else {
+                urlBuilder.append("&department=").append(department);
+            }
+        }
+
+        if (hireDate != null) {
+            if (urlBuilder.toString().endsWith("?")) {
+                urlBuilder.append("hireDate=").append(hireDate.toString());
+            } else {
+                urlBuilder.append("&hireDate=").append(hireDate.toString());
+            }
+        }
+
+        try {
+            String url = urlBuilder.toString();
+            System.out.println("Filter URL: " + url);
+
+            // If no filters are applied, fetch all employees
+            if (url.endsWith("?")) {
+                url = "http://localhost:8080/employees";  // Fetch all employees
+            }
+
+            Employee[] employeeArray = restTemplate.getForObject(url, Employee[].class);
+            List<Employee> filteredEmployees = (employeeArray != null) ?
+                    new ArrayList<>(Arrays.asList(employeeArray)) :
+                    new ArrayList<>();
+
+            System.out.println("Received " + filteredEmployees.size() + " employees from server");
+            updateTable(filteredEmployees);
+
+            // Force a UI refresh
+            employeeTable.revalidate();
+            employeeTable.repaint();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Failed to fetch filtered employees: " + e.getMessage());
+        }
+    }
+
 
     private void showAddEmployeeDialog() {
         JDialog addEmployeeDialog = new JDialog(this, "Add New Employee", true);
@@ -334,7 +445,15 @@ public class Main extends JFrame {
     }
 
     private void updateTable(List<Employee> newEmployees) {
-        ((EmployeeTableModel) employeeTable.getModel()).updateData(newEmployees);
+        if (newEmployees != null) {
+            System.out.println("Updating table with " + newEmployees.size() + " employees");
+            ((EmployeeTableModel) employeeTable.getModel()).updateData(newEmployees);
+            employeeTable.revalidate();
+            employeeTable.repaint();
+        } else {
+            System.out.println("No employees to display");
+            ((EmployeeTableModel) employeeTable.getModel()).updateData(new ArrayList<>());
+        }
     }
 
 
@@ -343,32 +462,34 @@ public class Main extends JFrame {
 
     private class EmployeeTableModel extends AbstractTableModel {
         private final String[] columnNames;
+        private List<Employee> employeeData;  // Add this line
 
-        public EmployeeTableModel(String[] columnNames) {
+        public EmployeeTableModel(String[] columnNames, List<Employee> employeeData) {
             this.columnNames = columnNames;
+            this.employeeData = employeeData != null ? employeeData : new ArrayList<>();
         }
 
         @Override
         public int getRowCount() {
-            return employees.size();
+            return employeeData.size();  // Use the local list instead of the class-level employees
         }
 
         @Override
         public int getColumnCount() {
             return columnNames.length;
         }
+
         public void updateData(List<Employee> newEmployees) {
-            employees.clear();
-            employees.addAll(newEmployees);
+            this.employeeData = new ArrayList<>(newEmployees);  // Create a new copy of the list
             fireTableDataChanged();
         }
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            if (rowIndex >= employees.size()) {
-                return null; // Return null if the row index is out of bounds
+            if (rowIndex >= employeeData.size()) {
+                return null;
             }
-            Employee emp = employees.get(rowIndex);
+            Employee emp = employeeData.get(rowIndex);  // Use the local list
             switch (columnIndex) {
                 case 0: return emp.getEmployeeId();
                 case 1: return emp.getFirstName();
@@ -391,7 +512,7 @@ public class Main extends JFrame {
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
-            return columnIndex == 8 || columnIndex == 9;  // Allow editing for both Delete and Update columns
+            return columnIndex == 8 || columnIndex == 9;
         }
 
         private void deleteEmployee(Long employeeId) {
@@ -406,11 +527,10 @@ public class Main extends JFrame {
             }
         }
 
-
         public void removeRow(int rowIndex) {
-            if (rowIndex >= 0 && rowIndex < employees.size()) {
-                employees.remove(rowIndex);
-                fireTableDataChanged(); // This will refresh the entire table
+            if (rowIndex >= 0 && rowIndex < employeeData.size()) {
+                employeeData.remove(rowIndex);
+                fireTableDataChanged();
             }
         }
     }
