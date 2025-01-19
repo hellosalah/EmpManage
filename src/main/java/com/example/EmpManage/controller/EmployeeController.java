@@ -56,23 +56,23 @@ public class EmployeeController {
 
     @PutMapping("/{id}")
     public Employee updateEmployee(@PathVariable Long id, @RequestBody Employee updatedEmployee) {
-        Role userRole = getUserRole();
+        /*Role userRole = getUserRole();
         String userDepartment = getUserDepartment();
 
         Employee existingEmployee = employeeService.getEmployeeById(id);
         if (userRole == Role.MANAGER && !existingEmployee.getDepartment().equals(userDepartment)) {
             throw new RuntimeException("Permission denied: Cannot update employees outside your department.");
         } else if (userRole == Role.HR_PERSONNEL || userRole == Role.ADMINISTRATOR || (userRole == Role.MANAGER && existingEmployee.getDepartment().equals(userDepartment))) {
-            Employee updated = employeeService.updateEmployee(id, updatedEmployee);
-            auditLogService.logAction(
+            */Employee updated = employeeService.updateEmployee(id, updatedEmployee);
+            /*auditLogService.logAction(
                     id,
                     UserSession.getInstance().getCurrentUser().getId(),
                     "UPDATED"
-            );
-            return updated;
+            );*/
+            return updated;/*
         } else {
             throw new RuntimeException("Permission denied: Cannot update employees.");
-        }
+        }*/
     }
 
     @DeleteMapping("/{id}")
