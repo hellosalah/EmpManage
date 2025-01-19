@@ -1,6 +1,7 @@
 package com.example.EmpManage.ui;
 
 import com.example.EmpManage.model.Employee;
+import com.example.EmpManage.model.EmploymentStatus;
 import net.miginfocom.swing.MigLayout;
 import org.springframework.web.client.RestTemplate;
 
@@ -8,6 +9,7 @@ import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -65,6 +67,7 @@ public class Main extends JFrame {
         searchPanel.add(dateSpinner, "cell 4 1");
         searchPanel.add(filterButton, "cell 5 1");
 
+
         // Add the searchPanel to the employee list tab
         employeeListPanel.add(searchPanel, "cell 0 0, growx");
 
@@ -83,6 +86,8 @@ public class Main extends JFrame {
         setLayout(new BorderLayout());
         add(titlePanel, BorderLayout.NORTH);
         add(tabbedPane, BorderLayout.CENTER);
+
+        addEmployeeButton.addActionListener(e -> showAddEmployeeDialog());
     }
 
     private void fetchEmployees() {
@@ -121,6 +126,83 @@ public class Main extends JFrame {
             JOptionPane.showMessageDialog(this, "Failed to fetch employees. Check your backend.");
         }
     }
+
+    private void showAddEmployeeDialog() {
+        JDialog addEmployeeDialog = new JDialog(this, "Add New Employee", true);
+        addEmployeeDialog.setSize(400, 500);
+        addEmployeeDialog.setLayout(new MigLayout("wrap 2", "[grow][grow]"));
+
+        JTextField firstNameField = new JTextField(15);
+        JTextField lastNameField = new JTextField(15);
+        JTextField jobTitleField = new JTextField(15);
+        JTextField departmentField = new JTextField(15);
+        JTextField hireDateField = new JTextField(15); // Should be validated as a date
+        JComboBox<EmploymentStatus> employmentStatusComboBox = new JComboBox<>(EmploymentStatus.values());
+        JTextField contactInformationField = new JTextField(15); // Should be validated as an integer
+        JTextField addressField = new JTextField(15);
+
+        JButton saveButton = new JButton("Save");
+        JButton cancelButton = new JButton("Cancel");
+
+        addEmployeeDialog.add(new JLabel("First Name:"));
+        addEmployeeDialog.add(firstNameField, "growx");
+        addEmployeeDialog.add(new JLabel("Last Name:"));
+        addEmployeeDialog.add(lastNameField, "growx");
+        addEmployeeDialog.add(new JLabel("Job Title:"));
+        addEmployeeDialog.add(jobTitleField, "growx");
+        addEmployeeDialog.add(new JLabel("Department:"));
+        addEmployeeDialog.add(departmentField, "growx");
+        addEmployeeDialog.add(new JLabel("Hire Date (YYYY-MM-DD):"));
+        addEmployeeDialog.add(hireDateField, "growx");
+        addEmployeeDialog.add(new JLabel("Employment Status:"));
+        addEmployeeDialog.add(employmentStatusComboBox, "growx");
+        addEmployeeDialog.add(new JLabel("Contact Information:"));
+        addEmployeeDialog.add(contactInformationField, "growx");
+        addEmployeeDialog.add(new JLabel("Address:"));
+        addEmployeeDialog.add(addressField, "growx");
+        addEmployeeDialog.add(saveButton, "split 2, span, center");
+        addEmployeeDialog.add(cancelButton);
+
+        saveButton.addActionListener(e -> {
+            try {
+                String firstName = firstNameField.getText();
+                String lastName = lastNameField.getText();
+                String jobTitle = jobTitleField.getText();
+                String department = departmentField.getText();
+                LocalDate hireDate = LocalDate.parse(hireDateField.getText());
+                EmploymentStatus employmentStatus = (EmploymentStatus) employmentStatusComboBox.getSelectedItem();
+                int contactInformation = Integer.parseInt(contactInformationField.getText());
+                String address = addressField.getText();
+
+                Employee newEmployee = new Employee(null, firstName, lastName, jobTitle, department, hireDate, employmentStatus, contactInformation, address);
+                addNewEmployee(newEmployee);
+                addEmployeeDialog.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Invalid input, please check all fields.");
+            }
+        });
+
+        cancelButton.addActionListener(e -> addEmployeeDialog.dispose());
+
+        addEmployeeDialog.setLocationRelativeTo(this);
+        addEmployeeDialog.setVisible(true);
+    }
+
+    private void addNewEmployee(Employee newEmployee) {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "http://localhost:8080/employees";
+
+        try {
+            restTemplate.postForObject(url, newEmployee, Employee.class);
+            JOptionPane.showMessageDialog(this, "Employee added successfully");
+            fetchEmployees(); // Refresh the table
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Failed to add employee");
+        }
+    }
+
+
 
     private class EmployeeTableModel extends AbstractTableModel {
         private final String[] columnNames;
@@ -181,6 +263,7 @@ public class Main extends JFrame {
             }
         }
 
+
         public void removeRow(int rowIndex) {
             if (rowIndex >= 0 && rowIndex < employees.size()) {
                 employees.remove(rowIndex);
@@ -224,6 +307,7 @@ public class Main extends JFrame {
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
             return button;
         }
+
 
     }
 
