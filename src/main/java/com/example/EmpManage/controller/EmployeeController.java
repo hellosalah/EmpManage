@@ -1,6 +1,7 @@
 package com.example.EmpManage.controller;
 
 import com.example.EmpManage.config.UserSession;
+import com.example.EmpManage.exception.PermissionDeniedException;
 import com.example.EmpManage.model.Employee;
 import com.example.EmpManage.model.EmploymentStatus;
 import com.example.EmpManage.model.Role;
@@ -26,8 +27,7 @@ public class EmployeeController {
     @PostMapping
     public Employee createEmployee(@RequestBody Employee employee) {
         if (!hasPermission(Role.HR_PERSONNEL, Role.ADMINISTRATOR)) {
-            throw new RuntimeException("Permission denied: Cannot create employee.");
-        }
+            throw new PermissionDeniedException("Permission denied: Cannot create employee.");        }
 
         Employee created = employeeService.createEmployee(employee);
         auditLogService.logAction(
@@ -61,8 +61,7 @@ public class EmployeeController {
 
         Employee existingEmployee = employeeService.getEmployeeById(id);
         if (userRole == Role.MANAGER && !existingEmployee.getDepartment().equals(userDepartment)) {
-            throw new RuntimeException("Permission denied: Cannot update employees outside your department.");
-        } else if (userRole == Role.HR_PERSONNEL || userRole == Role.ADMINISTRATOR || (userRole == Role.MANAGER && existingEmployee.getDepartment().equals(userDepartment))) {
+            throw new PermissionDeniedException("Permission denied: Cannot create employee.");        } else if (userRole == Role.HR_PERSONNEL || userRole == Role.ADMINISTRATOR || (userRole == Role.MANAGER && existingEmployee.getDepartment().equals(userDepartment))) {
             Employee updated = employeeService.updateEmployee(id, updatedEmployee);
             auditLogService.logAction(
                     id,
@@ -71,15 +70,13 @@ public class EmployeeController {
             );
             return updated;
         } else {
-            throw new RuntimeException("Permission denied: Cannot update employees.");
-        }
+            throw new PermissionDeniedException("Permission denied: Cannot create employee.");        }
     }
 
     @DeleteMapping("/{id}")
     public void deleteEmployee(@PathVariable Long id) {
         if (!hasPermission(Role.HR_PERSONNEL, Role.ADMINISTRATOR)) {
-            throw new RuntimeException("Permission denied: Cannot delete employee.");
-        }
+            throw new PermissionDeniedException("Permission denied: Cannot create employee.");        }
         employeeService.deleteEmployee(id);
 
         auditLogService.logAction(
