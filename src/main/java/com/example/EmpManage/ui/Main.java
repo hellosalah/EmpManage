@@ -129,16 +129,16 @@ public class Main extends JFrame {
 
     private void showAddEmployeeDialog() {
         JDialog addEmployeeDialog = new JDialog(this, "Add New Employee", true);
-        addEmployeeDialog.setSize(400, 500);
+        addEmployeeDialog.setSize(400, 300); // Adjusted the height to make it smaller
         addEmployeeDialog.setLayout(new MigLayout("wrap 2", "[grow][grow]"));
 
         JTextField firstNameField = new JTextField(15);
         JTextField lastNameField = new JTextField(15);
         JTextField jobTitleField = new JTextField(15);
         JTextField departmentField = new JTextField(15);
-        JTextField hireDateField = new JTextField(15); // Should be validated as a date
+        JTextField hireDateField = new JTextField(10); // Adjusted size for date field
         JComboBox<EmploymentStatus> employmentStatusComboBox = new JComboBox<>(EmploymentStatus.values());
-        JTextField contactInformationField = new JTextField(15); // Should be validated as an integer
+        JTextField contactInformationField = new JTextField(15);
         JTextField addressField = new JTextField(15);
 
         JButton saveButton = new JButton("Save");
@@ -152,8 +152,14 @@ public class Main extends JFrame {
         addEmployeeDialog.add(jobTitleField, "growx");
         addEmployeeDialog.add(new JLabel("Department:"));
         addEmployeeDialog.add(departmentField, "growx");
-        addEmployeeDialog.add(new JLabel("Hire Date (YYYY-MM-DD):"));
-        addEmployeeDialog.add(hireDateField, "growx");
+
+        // Hire Date Spinner, compact and with a custom editor
+        JSpinner hireDateSpinner = new JSpinner(new SpinnerDateModel());
+        hireDateSpinner.setEditor(new JSpinner.DateEditor(hireDateSpinner, "yyyy-MM-dd"));
+        hireDateSpinner.setPreferredSize(new Dimension(100, 25)); // Make the spinner smaller
+        addEmployeeDialog.add(new JLabel("Hire Date:"));
+        addEmployeeDialog.add(hireDateSpinner, "growx");
+
         addEmployeeDialog.add(new JLabel("Employment Status:"));
         addEmployeeDialog.add(employmentStatusComboBox, "growx");
         addEmployeeDialog.add(new JLabel("Contact Information:"));
@@ -169,7 +175,7 @@ public class Main extends JFrame {
                 String lastName = lastNameField.getText();
                 String jobTitle = jobTitleField.getText();
                 String department = departmentField.getText();
-                LocalDate hireDate = LocalDate.parse(hireDateField.getText());
+                LocalDate hireDate = ((java.util.Date) hireDateSpinner.getValue()).toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
                 EmploymentStatus employmentStatus = (EmploymentStatus) employmentStatusComboBox.getSelectedItem();
                 int contactInformation = Integer.parseInt(contactInformationField.getText());
                 String address = addressField.getText();
@@ -187,6 +193,7 @@ public class Main extends JFrame {
         addEmployeeDialog.setLocationRelativeTo(this);
         addEmployeeDialog.setVisible(true);
     }
+
 
     private void addNewEmployee(Employee newEmployee) {
         RestTemplate restTemplate = new RestTemplate();
