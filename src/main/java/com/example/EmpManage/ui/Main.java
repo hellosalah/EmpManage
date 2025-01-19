@@ -13,6 +13,7 @@ import java.awt.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 
 public class Main extends JFrame {
@@ -49,13 +50,22 @@ public class Main extends JFrame {
         JTextField searchField = new JTextField(15);
         JButton searchButton = new JButton("Search");
 
-        JComboBox<String> departmentFilter = new JComboBox<>(new String[]{"All Departments", "HR", "IT", "Sales"});
-        JComboBox<String> jobTitleFilter = new JComboBox<>(new String[]{"All Job Titles", "Manager", "Engineer", "Developer"});
+        JComboBox<String> departmentFilter = new JComboBox<>(new String[]{"All Departments", "IT", "Finance", "Marketing"});
+        JComboBox<String> statusFilter = new JComboBox<>(new String[]{"All Status", "FULL_TIME", "INTERN", "FREELANCER"});
 
         // JSpinner for Date Picker
-        SpinnerDateModel dateModel = new SpinnerDateModel();
-        JSpinner dateSpinner = new JSpinner(dateModel);
-        dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd"));
+        JTextField dateField = new JTextField(15);
+        dateField.setForeground(Color.GRAY);
+        dateField.setText("Date");
+
+        // Set the placeholder and colors
+        dateField.setForeground(Color.GRAY);
+        dateField.setBackground(UIManager.getColor("Panel.background")); // Match window default color
+        dateField.setText("Date");
+
+        // Adjust size to match combo box dimensions (smaller width, taller height)
+        Dimension size = new Dimension(50, 25); // Customize width and height as needed
+        dateField.setPreferredSize(size);
 
         JButton filterButton = new JButton("Filter");
 
@@ -64,8 +74,8 @@ public class Main extends JFrame {
         searchPanel.add(searchField, "cell 0 1, growx");
         searchPanel.add(searchButton, "cell 1 1");
         searchPanel.add(departmentFilter, "cell 2 1");
-        searchPanel.add(jobTitleFilter, "cell 3 1");
-        searchPanel.add(dateSpinner, "cell 4 1");
+        searchPanel.add(statusFilter, "cell 3 1");
+        searchPanel.add(dateField, "cell 4 1");
         searchPanel.add(filterButton, "cell 5 1");
 
 
