@@ -87,41 +87,29 @@ public class Main extends JFrame {
 
     private void fetchEmployees() {
         RestTemplate restTemplate = new RestTemplate();
-        String url = "http://localhost:8080/employees"; // Ensure the API URL is correct
+        String url = "http://localhost:8080/employees";
 
         try {
-            // Fetch the employee list from the backend
             Employee[] employeeArray = restTemplate.getForObject(url, Employee[].class);
             employees = new ArrayList<>(Arrays.asList(employeeArray));
 
-            // Set column names and data for the table
             String[] columnNames = {"Employee ID", "First Name", "Last Name", "Job Title", "Hire Date", "Status", "Contact", "Address", "Delete"};
-            Object[][] rowData = new Object[employees.size()][9];
 
-            for (int i = 0; i < employees.size(); i++) {
-                Employee emp = employees.get(i);
-                rowData[i][0] = emp.getEmployeeId();
-                rowData[i][1] = emp.getFirstName();
-                rowData[i][2] = emp.getLastName();
-                rowData[i][3] = emp.getJobTitle();
-                rowData[i][4] = emp.getHireDate();
-                rowData[i][5] = emp.getEmploymentStatus();
-                rowData[i][6] = emp.getContactInformation();
-                rowData[i][7] = emp.getAddress();
-                // Add the delete button in the last column
-                rowData[i][8] = new JButton("Delete");
-            }
-
-            // Create the table and scroll pane
-            employeeTable = new JTable(new EmployeeTableModel(rowData, columnNames));
+            // Create the table with the new model
+            employeeTable = new JTable(new EmployeeTableModel(columnNames));
             employeeTable.setFillsViewportHeight(true);
 
             // Set a custom cell renderer for the delete button
             employeeTable.getColumn("Delete").setCellRenderer(new ButtonRenderer());
-            employeeTable.getColumn("Delete").setCellEditor(new ButtonEditor(new JCheckBox(), new EmployeeTableModel(rowData, columnNames)));
+            employeeTable.getColumn("Delete").setCellEditor(
+                    new ButtonEditor(new JCheckBox(), (EmployeeTableModel) employeeTable.getModel())
+            );
 
             // Add the table to the employee list panel
             JPanel employeeListPanel = (JPanel) tabbedPane.getComponentAt(0);
+            if (tableScrollPane != null) {
+                employeeListPanel.remove(tableScrollPane);
+            }
             tableScrollPane = new JScrollPane(employeeTable);
             employeeListPanel.add(tableScrollPane, "cell 0 1, grow, push");
 
@@ -135,17 +123,15 @@ public class Main extends JFrame {
     }
 
     private class EmployeeTableModel extends AbstractTableModel {
-        private final Object[][] rowData;
         private final String[] columnNames;
 
-        public EmployeeTableModel(Object[][] rowData, String[] columnNames) {
-            this.rowData = rowData;
+        public EmployeeTableModel(String[] columnNames) {
             this.columnNames = columnNames;
         }
 
         @Override
         public int getRowCount() {
-            return rowData.length;
+            return employees.size();
         }
 
         @Override
@@ -155,7 +141,22 @@ public class Main extends JFrame {
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            return rowData[rowIndex][columnIndex];
+            if (rowIndex >= employees.size()) {
+                return null; // Return null if the row index is out of bounds
+            }
+            Employee emp = employees.get(rowIndex);
+            switch (columnIndex) {
+                case 0: return emp.getEmployeeId();
+                case 1: return emp.getFirstName();
+                case 2: return emp.getLastName();
+                case 3: return emp.getJobTitle();
+                case 4: return emp.getHireDate();
+                case 5: return emp.getEmploymentStatus();
+                case 6: return emp.getContactInformation();
+                case 7: return emp.getAddress();
+                case 8: return "Delete";
+                default: return null;
+            }
         }
 
         @Override
@@ -165,23 +166,12 @@ public class Main extends JFrame {
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
-            return columnIndex == 8;  // Only the Delete column is editable
-        }
-
-        @Override
-        public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-            if (columnIndex == 8) {
-                // When delete button is clicked, handle the deletion
-                Long employeeId = employees.get(rowIndex).getEmployeeId();  // Use Long for employeeId
-                deleteEmployee(employeeId);
-                // Remove the row from the table
-                removeRow(rowIndex);
-            }
+            return columnIndex == 8;
         }
 
         private void deleteEmployee(Long employeeId) {
             RestTemplate restTemplate = new RestTemplate();
-            String url = "http://localhost:8080/employees/" + employeeId; // API URL for delete
+            String url = "http://localhost:8080/employees/" + employeeId;
             try {
                 restTemplate.delete(url);
                 JOptionPane.showMessageDialog(Main.this, "Employee deleted successfully");
@@ -191,13 +181,14 @@ public class Main extends JFrame {
             }
         }
 
-        private void removeRow(int rowIndex) {
-            employees.remove(rowIndex);  // Remove employee from list
-            fireTableRowsDeleted(rowIndex, rowIndex);  // Refresh the table view
+        public void removeRow(int rowIndex) {
+            if (rowIndex >= 0 && rowIndex < employees.size()) {
+                employees.remove(rowIndex);
+                fireTableDataChanged(); // This will refresh the entire table
+            }
         }
     }
 
-    // Custom cell renderer for the Delete button
     class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() {
             setText("Delete");
@@ -209,13 +200,13 @@ public class Main extends JFrame {
         }
     }
 
-    // Custom cell editor for the Delete button
     class ButtonEditor extends DefaultCellEditor {
         private final JButton button;
+        private final EmployeeTableModel model;
 
-        // Pass the EmployeeTableModel to the ButtonEditor
         public ButtonEditor(JCheckBox checkBox, EmployeeTableModel model) {
             super(checkBox);
+            this.model = model;
             button = new JButton("Delete");
             button.setOpaque(true);
             button.addActionListener(e -> {
@@ -224,6 +215,7 @@ public class Main extends JFrame {
                     Long employeeId = employees.get(row).getEmployeeId();
                     model.deleteEmployee(employeeId);
                     model.removeRow(row);
+                    fireEditingStopped(); // Add this line to stop editing
                 }
             });
         }
@@ -232,6 +224,7 @@ public class Main extends JFrame {
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
             return button;
         }
+
     }
 
     public static void main(String[] args) {
