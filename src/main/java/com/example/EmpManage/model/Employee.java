@@ -9,8 +9,6 @@ import java.time.LocalDate;
 
 @Entity
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,6 +30,22 @@ public class Employee {
     private int contactInformation;
 
     private String address;
+
+    public Employee() {
+        // Default constructor for Hibernate
+    }
+    public Employee(Long employeeId, String firstName, String lastName, String jobTitle, String department, LocalDate hireDate, EmploymentStatus employmentStatus, int contactInformation, String address) {
+        this.employeeId = employeeId;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.jobTitle = jobTitle;
+        this.department = department;
+        this.hireDate = hireDate;
+        this.employmentStatus = employmentStatus;
+        this.contactInformation = contactInformation;
+        this.address = address;
+    }
+
 
     public Long getEmployeeId() {
         return employeeId;
