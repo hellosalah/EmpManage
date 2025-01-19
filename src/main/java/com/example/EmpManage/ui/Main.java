@@ -413,8 +413,7 @@ public class Main extends JFrame {
             fetchEmployees(); // Refresh the table
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Failed to add employee");
-        }
+            handleBackendError(e);        }
     }
 
     private void updateEmployee(Employee employee) {
@@ -427,8 +426,7 @@ public class Main extends JFrame {
             fetchEmployees(); // Refresh the table
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Failed to update employee");
-        }
+            handleBackendError(e);        }
     }
 
     private List<Employee> searchEmployees(String query) {
@@ -515,17 +513,13 @@ public class Main extends JFrame {
             return columnIndex == 8 || columnIndex == 9;
         }
 
-        private void deleteEmployee(Long employeeId) {
+        private void deleteEmployee(Long employeeId) throws Exception {
             RestTemplate restTemplate = new RestTemplate();
             String url = "http://localhost:8080/employees/" + employeeId;
-            try {
-                restTemplate.delete(url);
-                JOptionPane.showMessageDialog(Main.this, "Employee deleted successfully");
-            } catch (Exception e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(Main.this, "Failed to delete employee");
-            }
+            restTemplate.delete(url); // Let this throw exceptions for error handling
         }
+
+
 
         public void removeRow(int rowIndex) {
             if (rowIndex >= 0 && rowIndex < employeeData.size()) {
@@ -535,6 +529,29 @@ public class Main extends JFrame {
         }
     }
 
+    private void handleBackendError(Exception ex) {
+        if (ex instanceof org.springframework.web.client.HttpClientErrorException.Forbidden) {
+            JOptionPane.showMessageDialog(Main.this,
+                    "You don't have permission to perform this action.",
+                    "Permission Denied",
+                    JOptionPane.WARNING_MESSAGE);
+        } else if (ex instanceof org.springframework.web.client.HttpClientErrorException.BadRequest) {
+            JOptionPane.showMessageDialog(Main.this,
+                    "Invalid request. Please check your input.",
+                    "Bad Request",
+                    JOptionPane.ERROR_MESSAGE);
+        } else if (ex instanceof org.springframework.web.client.HttpClientErrorException.NotFound) {
+            JOptionPane.showMessageDialog(Main.this,
+                    "The requested resource was not found.",
+                    "Not Found",
+                    JOptionPane.ERROR_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(Main.this,
+                    "An unexpected error occurred. Please try again later.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
     class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() {
             setOpaque(true);
@@ -562,8 +579,13 @@ public class Main extends JFrame {
                 if (row != -1) {
                     if (column == 8) { // Delete button
                         Long employeeId = employees.get(row).getEmployeeId();
-                        model.deleteEmployee(employeeId);
-                        model.removeRow(row);
+                        try {
+                            model.deleteEmployee(employeeId); // Attempt to delete
+                            model.removeRow(row); // Only remove the row if the backend deletion is successful
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                            ((Main) SwingUtilities.getWindowAncestor(employeeTable)).handleBackendError(ex); // Handle error
+                        }
                     } else if (column == 9) { // Update button
                         Employee employee = employees.get(row);
                         showUpdateEmployeeDialog(employee);
@@ -571,6 +593,7 @@ public class Main extends JFrame {
                     fireEditingStopped();
                 }
             });
+
         }
 
         @Override
@@ -579,6 +602,10 @@ public class Main extends JFrame {
             button.setText(value.toString());
             return button;
         }
+
+
+
+
     }
 
     public static void main(String[] args) {
