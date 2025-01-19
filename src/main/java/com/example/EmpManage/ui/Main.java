@@ -1,5 +1,6 @@
 package com.example.EmpManage.ui;
 
+import com.example.EmpManage.model.AuditLog;
 import com.example.EmpManage.model.Employee;
 import com.example.EmpManage.model.EmploymentStatus;
 import net.miginfocom.swing.MigLayout;
@@ -24,6 +25,7 @@ public class Main extends JFrame {
     private JScrollPane tableScrollPane;
     private JTabbedPane tabbedPane;
     private List<Employee> employees;
+    private JTable auditLogTable;
 
     public Main() {
         setTitle("Employee Management System");
@@ -32,16 +34,39 @@ public class Main extends JFrame {
         setLocationRelativeTo(null);
         employeeTable = new JTable();
         initializeTable();
+
         // Fetch all employees when the application starts
         fetchFilteredEmployees(null, null, null);
 
 
 
-        // Title Panel (Center aligned)
-        JPanel titlePanel = new JPanel(new MigLayout("align center, insets 20"));
+        // Create a panel for the header that uses BorderLayout
+        JPanel headerPanel = new JPanel(new BorderLayout());
+
+// Title Panel (Center aligned)
+        JPanel titlePanel = new JPanel(new MigLayout("insets 20, fill", "[center, grow]"));
         JLabel titleLabel = new JLabel("Employee Management System");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
-        titlePanel.add(titleLabel, "cell 0 0, align center");
+        titlePanel.add(titleLabel, "center");
+
+// Add Logout Button
+        JButton logoutButton = new JButton("Logout");
+        logoutButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        logoutButton.setFocusPainted(false);
+// Make the button size fit the text
+        logoutButton.setMargin(new Insets(5, 10, 5, 10));
+
+// Create a wrapper panel for the logout button with some padding
+        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        logoutPanel.add(logoutButton);
+
+// Add components to the header panel
+        headerPanel.add(titlePanel, BorderLayout.CENTER);
+        headerPanel.add(logoutPanel, BorderLayout.EAST);
+
+// Add Action Listener for Logout Button
+        logoutButton.addActionListener(e -> logout());
+
 
         // Main Panel for Tabs
         tabbedPane = new JTabbedPane();
@@ -110,14 +135,16 @@ public class Main extends JFrame {
         // Audit Log Tab (Dummy Example for now)
         JPanel auditLogPanel = new JPanel(new MigLayout());
         tabbedPane.addTab("Audit Log", auditLogPanel);
-        JTextArea auditLogArea = new JTextArea(20, 50);
-        auditLogArea.setText("Audit log entries will be shown here...");
-        JScrollPane auditLogScroll = new JScrollPane(auditLogArea);
-        auditLogPanel.add(auditLogScroll, "cell 0 0, grow, push");
+        String[] auditColumnNames = {"Performed By (ID)", "Action", "Employee ID", "Timestamp"};
+        auditLogTable = new JTable(new DefaultTableModel(auditColumnNames, 0));
+        JScrollPane auditScrollPane = new JScrollPane(auditLogTable);
+        auditLogPanel.add(auditScrollPane, "cell 0 0, grow, push");
+
+        fetchAuditLogs();
 
         // Add all components to the JFrame
         setLayout(new BorderLayout());
-        add(titlePanel, BorderLayout.NORTH);
+        add(headerPanel, BorderLayout.NORTH);
         add(tabbedPane, BorderLayout.CENTER);
 
         addEmployeeButton.addActionListener(e -> showAddEmployeeDialog());
@@ -209,6 +236,26 @@ public class Main extends JFrame {
             JOptionPane.showMessageDialog(this, "Failed to fetch employees. Check your backend.");
         }
     }
+
+    private void fetchAuditLogs() {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "http://localhost:8080/auditLogs"; // Adjust the URL as necessary
+
+        try {
+            AuditLog[] auditLogs = restTemplate.getForObject(url, AuditLog[].class);
+            DefaultTableModel model = (DefaultTableModel) auditLogTable.getModel();
+            model.setRowCount(0); // Clear existing rows
+
+            for (AuditLog log : auditLogs) {
+                model.addRow(new Object[]{log.getPerformedBy(), log.getAction(), log.getEmployeeId(), log.getTimestamp()});
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Failed to fetch audit logs. Check your backend.");
+        }
+    }
+
+
 
     private void fetchFilteredEmployees(EmploymentStatus status, String department, LocalDate hireDate) {
         RestTemplate restTemplate = new RestTemplate();
@@ -411,6 +458,7 @@ public class Main extends JFrame {
             restTemplate.postForObject(url, newEmployee, Employee.class);
             JOptionPane.showMessageDialog(this, "Employee added successfully");
             fetchEmployees(); // Refresh the table
+            fetchAuditLogs();
         } catch (Exception e) {
             e.printStackTrace();
             handleBackendError(e);        }
@@ -424,6 +472,7 @@ public class Main extends JFrame {
             restTemplate.put(url, employee);
             JOptionPane.showMessageDialog(this, "Employee updated successfully");
             fetchEmployees(); // Refresh the table
+            fetchAuditLogs();
         } catch (Exception e) {
             e.printStackTrace();
             handleBackendError(e);        }
@@ -453,6 +502,25 @@ public class Main extends JFrame {
             ((EmployeeTableModel) employeeTable.getModel()).updateData(new ArrayList<>());
         }
     }
+
+    private void logout() {
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to log out?",
+                "Logout Confirmation",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            // Close the Main window
+            dispose();
+
+            // Redirect to LoginForm
+            SwingUtilities.invokeLater(() -> {
+                LoginForm loginForm = new LoginForm();
+                loginForm.setVisible(true);
+            });
+        }
+    }
+
 
 
 
@@ -517,6 +585,7 @@ public class Main extends JFrame {
             RestTemplate restTemplate = new RestTemplate();
             String url = "http://localhost:8080/employees/" + employeeId;
             restTemplate.delete(url); // Let this throw exceptions for error handling
+            fetchAuditLogs();
         }
 
 
