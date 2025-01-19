@@ -7,6 +7,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.time.LocalDate;
@@ -88,6 +89,16 @@ public class Main extends JFrame {
         add(tabbedPane, BorderLayout.CENTER);
 
         addEmployeeButton.addActionListener(e -> showAddEmployeeDialog());
+        searchButton.addActionListener(e -> {
+            String query = searchField.getText().trim(); // Get search query
+            System.out.println("Search query: " + query);
+            if (query.isEmpty()) {
+                fetchEmployees(); // If query is empty, show all employees
+            } else {
+                List<Employee> employees = searchEmployees(query); // Perform search
+                updateTable(employees); // Update the JTable with new data
+            }
+        });
     }
 
     private void fetchEmployees() {
@@ -299,6 +310,24 @@ public class Main extends JFrame {
         }
     }
 
+    private List<Employee> searchEmployees(String query) {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "http://localhost:8080/employees/search?query=" + query; // Replace with your actual base URL
+        try {
+            Employee[] employees = restTemplate.getForObject(url, Employee[].class);
+            return Arrays.asList(employees);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error fetching search results. Please try again.");
+            return List.of(); // Return an empty list in case of an error
+        }
+    }
+
+    private void updateTable(List<Employee> newEmployees) {
+        ((EmployeeTableModel) employeeTable.getModel()).updateData(newEmployees);
+    }
+
+
 
 
 
@@ -317,6 +346,11 @@ public class Main extends JFrame {
         @Override
         public int getColumnCount() {
             return columnNames.length;
+        }
+        public void updateData(List<Employee> newEmployees) {
+            employees.clear();
+            employees.addAll(newEmployees);
+            fireTableDataChanged();
         }
 
         @Override
