@@ -98,8 +98,7 @@ public class Main extends JFrame {
             Employee[] employeeArray = restTemplate.getForObject(url, Employee[].class);
             employees = new ArrayList<>(Arrays.asList(employeeArray));
 
-            String[] columnNames = {"Employee ID", "First Name", "Last Name", "Job Title", "Hire Date", "Status", "Contact", "Address", "Delete"};
-
+            String[] columnNames = {"Employee ID", "First Name", "Last Name", "Job Title", "Hire Date", "Status", "Contact", "Address", "Delete", "Update"};
             // Create the table with the new model
             employeeTable = new JTable(new EmployeeTableModel(columnNames));
             employeeTable.setFillsViewportHeight(true);
@@ -107,6 +106,11 @@ public class Main extends JFrame {
             // Set a custom cell renderer for the delete button
             employeeTable.getColumn("Delete").setCellRenderer(new ButtonRenderer());
             employeeTable.getColumn("Delete").setCellEditor(
+                    new ButtonEditor(new JCheckBox(), (EmployeeTableModel) employeeTable.getModel())
+            );
+
+            employeeTable.getColumn("Update").setCellRenderer(new ButtonRenderer());
+            employeeTable.getColumn("Update").setCellEditor(
                     new ButtonEditor(new JCheckBox(), (EmployeeTableModel) employeeTable.getModel())
             );
 
@@ -194,6 +198,78 @@ public class Main extends JFrame {
         addEmployeeDialog.setVisible(true);
     }
 
+    private void showUpdateEmployeeDialog(Employee employee) {
+        JDialog updateEmployeeDialog = new JDialog(this, "Update Employee", true);
+        updateEmployeeDialog.setSize(400, 300);
+        updateEmployeeDialog.setLayout(new MigLayout("wrap 2", "[grow][grow]"));
+
+        JTextField firstNameField = new JTextField(employee.getFirstName(), 15);
+        JTextField lastNameField = new JTextField(employee.getLastName(), 15);
+        JTextField jobTitleField = new JTextField(employee.getJobTitle(), 15);
+        JTextField departmentField = new JTextField(employee.getDepartment(), 15);
+        JTextField hireDateField = new JTextField(employee.getHireDate().toString(), 10);
+        JComboBox<EmploymentStatus> employmentStatusComboBox = new JComboBox<>(EmploymentStatus.values());
+        employmentStatusComboBox.setSelectedItem(employee.getEmploymentStatus());
+        JTextField contactInformationField = new JTextField(String.valueOf(employee.getContactInformation()), 15);
+        JTextField addressField = new JTextField(employee.getAddress(), 15);
+
+        JButton saveButton = new JButton("Save");
+        JButton cancelButton = new JButton("Cancel");
+
+        // Add components to dialog
+        updateEmployeeDialog.add(new JLabel("First Name:"));
+        updateEmployeeDialog.add(firstNameField, "growx");
+        updateEmployeeDialog.add(new JLabel("Last Name:"));
+        updateEmployeeDialog.add(lastNameField, "growx");
+        updateEmployeeDialog.add(new JLabel("Job Title:"));
+        updateEmployeeDialog.add(jobTitleField, "growx");
+        updateEmployeeDialog.add(new JLabel("Department:"));
+        updateEmployeeDialog.add(departmentField, "growx");
+        updateEmployeeDialog.add(new JLabel("Hire Date:"));
+        updateEmployeeDialog.add(hireDateField, "growx");
+        updateEmployeeDialog.add(new JLabel("Employment Status:"));
+        updateEmployeeDialog.add(employmentStatusComboBox, "growx");
+        updateEmployeeDialog.add(new JLabel("Contact Information:"));
+        updateEmployeeDialog.add(contactInformationField, "growx");
+        updateEmployeeDialog.add(new JLabel("Address:"));
+        updateEmployeeDialog.add(addressField, "growx");
+        updateEmployeeDialog.add(saveButton, "split 2, span, center");
+        updateEmployeeDialog.add(cancelButton);
+
+        saveButton.addActionListener(e -> {
+            try {
+                String firstName = firstNameField.getText();
+                String lastName = lastNameField.getText();
+                String jobTitle = jobTitleField.getText();
+                String department = departmentField.getText();
+                LocalDate hireDate = LocalDate.parse(hireDateField.getText());
+                EmploymentStatus employmentStatus = (EmploymentStatus) employmentStatusComboBox.getSelectedItem();
+                int contactInformation = Integer.parseInt(contactInformationField.getText());
+                String address = addressField.getText();
+
+                employee.setFirstName(firstName);
+                employee.setLastName(lastName);
+                employee.setJobTitle(jobTitle);
+                employee.setDepartment(department);
+                employee.setHireDate(hireDate);
+                employee.setEmploymentStatus(employmentStatus);
+                employee.setContactInformation(contactInformation);
+                employee.setAddress(address);
+
+                updateEmployee(employee);
+                updateEmployeeDialog.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Invalid input, please check all fields.");
+            }
+        });
+
+        cancelButton.addActionListener(e -> updateEmployeeDialog.dispose());
+
+        updateEmployeeDialog.setLocationRelativeTo(this);
+        updateEmployeeDialog.setVisible(true);
+    }
+
+
 
     private void addNewEmployee(Employee newEmployee) {
         RestTemplate restTemplate = new RestTemplate();
@@ -208,6 +284,21 @@ public class Main extends JFrame {
             JOptionPane.showMessageDialog(this, "Failed to add employee");
         }
     }
+
+    private void updateEmployee(Employee employee) {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "http://localhost:8080/employees/" + employee.getEmployeeId();
+
+        try {
+            restTemplate.put(url, employee);
+            JOptionPane.showMessageDialog(this, "Employee updated successfully");
+            fetchEmployees(); // Refresh the table
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Failed to update employee");
+        }
+    }
+
 
 
 
@@ -244,6 +335,7 @@ public class Main extends JFrame {
                 case 6: return emp.getContactInformation();
                 case 7: return emp.getAddress();
                 case 8: return "Delete";
+                case 9: return "Update";
                 default: return null;
             }
         }
@@ -255,7 +347,7 @@ public class Main extends JFrame {
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
-            return columnIndex == 8;
+            return columnIndex == 8 || columnIndex == 9;  // Allow editing for both Delete and Update columns
         }
 
         private void deleteEmployee(Long employeeId) {
@@ -281,11 +373,12 @@ public class Main extends JFrame {
 
     class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() {
-            setText("Delete");
+            setOpaque(true);
         }
 
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setText(value.toString()); // Set the text based on the column (Delete or Update)
             return this;
         }
     }
@@ -293,29 +386,35 @@ public class Main extends JFrame {
     class ButtonEditor extends DefaultCellEditor {
         private final JButton button;
         private final EmployeeTableModel model;
+        private int column;
 
         public ButtonEditor(JCheckBox checkBox, EmployeeTableModel model) {
             super(checkBox);
             this.model = model;
-            button = new JButton("Delete");
+            button = new JButton();
             button.setOpaque(true);
             button.addActionListener(e -> {
                 int row = employeeTable.getSelectedRow();
                 if (row != -1) {
-                    Long employeeId = employees.get(row).getEmployeeId();
-                    model.deleteEmployee(employeeId);
-                    model.removeRow(row);
-                    fireEditingStopped(); // Add this line to stop editing
+                    if (column == 8) { // Delete button
+                        Long employeeId = employees.get(row).getEmployeeId();
+                        model.deleteEmployee(employeeId);
+                        model.removeRow(row);
+                    } else if (column == 9) { // Update button
+                        Employee employee = employees.get(row);
+                        showUpdateEmployeeDialog(employee);
+                    }
+                    fireEditingStopped();
                 }
             });
         }
 
         @Override
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            this.column = column;
+            button.setText(value.toString());
             return button;
         }
-
-
     }
 
     public static void main(String[] args) {
