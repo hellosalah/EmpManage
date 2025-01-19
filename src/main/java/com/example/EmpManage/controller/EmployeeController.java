@@ -25,16 +25,16 @@ public class EmployeeController {
     private AuditLogService auditLogService;
     @PostMapping
     public Employee createEmployee(@RequestBody Employee employee) {
-        /*if (!hasPermission(Role.HR_PERSONNEL, Role.ADMINISTRATOR)) {
+        if (!hasPermission(Role.HR_PERSONNEL, Role.ADMINISTRATOR)) {
             throw new RuntimeException("Permission denied: Cannot create employee.");
-        }*/
+        }
 
         Employee created = employeeService.createEmployee(employee);
-        /*auditLogService.logAction(
+        auditLogService.logAction(
                 created.getEmployeeId(),
                 UserSession.getInstance().getCurrentUser().getId(),
                 "CREATED"
-        );*/
+        );
         return created;
     }
 
@@ -56,37 +56,37 @@ public class EmployeeController {
 
     @PutMapping("/{id}")
     public Employee updateEmployee(@PathVariable Long id, @RequestBody Employee updatedEmployee) {
-        /*Role userRole = getUserRole();
+        Role userRole = getUserRole();
         String userDepartment = getUserDepartment();
 
         Employee existingEmployee = employeeService.getEmployeeById(id);
         if (userRole == Role.MANAGER && !existingEmployee.getDepartment().equals(userDepartment)) {
             throw new RuntimeException("Permission denied: Cannot update employees outside your department.");
         } else if (userRole == Role.HR_PERSONNEL || userRole == Role.ADMINISTRATOR || (userRole == Role.MANAGER && existingEmployee.getDepartment().equals(userDepartment))) {
-            */Employee updated = employeeService.updateEmployee(id, updatedEmployee);
-            /*auditLogService.logAction(
+            Employee updated = employeeService.updateEmployee(id, updatedEmployee);
+            auditLogService.logAction(
                     id,
                     UserSession.getInstance().getCurrentUser().getId(),
                     "UPDATED"
-            );*/
-            return updated;/*
+            );
+            return updated;
         } else {
             throw new RuntimeException("Permission denied: Cannot update employees.");
-        }*/
+        }
     }
 
     @DeleteMapping("/{id}")
     public void deleteEmployee(@PathVariable Long id) {
-        /*if (!hasPermission(Role.HR_PERSONNEL, Role.ADMINISTRATOR)) {
+        if (!hasPermission(Role.HR_PERSONNEL, Role.ADMINISTRATOR)) {
             throw new RuntimeException("Permission denied: Cannot delete employee.");
-        }*/
+        }
         employeeService.deleteEmployee(id);
 
-        /*auditLogService.logAction(
+        auditLogService.logAction(
                 id,
                 UserSession.getInstance().getCurrentUser().getId(),
                 "DELETED"
-        );*/
+        );
     }
 
     private boolean hasPermission(Role... roles) {
